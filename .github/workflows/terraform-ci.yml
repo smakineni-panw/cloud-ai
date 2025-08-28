@@ -72,22 +72,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.TF_VAR_aws_region }}
         
-      # --- IMPORTANT: UPDATED AZURE AUTHENTICATION ---
+      # --- IMPORTANT: REVISED AZURE AUTHENTICATION ---
+      # Now ONLY using the 'creds' input, as individual parameters (client-id, tenant-id)
+      # cause 'creds' to be ignored. All Service Principal details are within this JSON.
       - name: Authenticate Azure
         if: github.event.inputs.provider == 'azure'
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          # The azure/login action expects the client secret in the `creds` input for service principal or via environment variables
-          # It does NOT accept 'client-secret' as a direct parameter.
-          # You should ensure ARM_CLIENT_SECRET is set as an environment variable or use the 'creds' input format.
-          # For simplicity with direct client_id/tenant_id, we'll try setting environment variables for az cli
-          # If using service principal, it's often better to combine into a JSON for 'creds' input.
-          # However, to match the separate secrets, we'll revert to using environment variables for the action.
-          # The azure/login action specifically for service principal uses:
-          # service-principal: true, client-id, tenant-id, client-secret, subscription-id
-          # Let's use the explicit 'creds' input for service principal for reliability.
           creds: >-
             {
               "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
@@ -95,7 +86,6 @@ jobs:
               "tenantId": "${{ secrets.AZURE_TENANT_ID }}",
               "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
             }
-          # subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }} # This is now part of the 'creds' JSON
       # ---------------------------------------------
         
       - name: Authenticate GCP
