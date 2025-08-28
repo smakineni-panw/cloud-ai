@@ -13,3 +13,10 @@ variable "gcs_location" {
   type        = string
   default     = "US-EAST1"
 }
+
+# --- ADD THIS VARIABLE DECLARATION ---
+variable "gcp_region" {
+  description = "The GCP region for provider configuration."
+  type        = string
+  default     = "us-central1" # Or your preferred default GCP region
+}
