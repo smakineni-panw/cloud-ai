@@ -59,6 +59,16 @@ jobs:
         with:
           terraform_version: 1.x # Use the latest stable 1.x version
 
+      # --- NEW DEBUGGING STEP ---
+      - name: Debug AWS Secret Presence
+        if: github.event.inputs.provider == 'aws'
+        run: |
+          echo "Checking AWS secrets before credential configuration:"
+          echo "AWS_ACCESS_KEY_ID present: ${{ secrets.AWS_ACCESS_KEY_ID != '' }}"
+          echo "AWS_SECRET_ACCESS_KEY present: ${{ secrets.AWS_SECRET_ACCESS_KEY != '' }}"
+        # IMPORTANT: DO NOT echo the actual secret values, only check for presence
+      # ------------------------
+
       - name: Configure AWS Credentials
         # This step only runs if 'aws' is selected as the provider
         if: github.event.inputs.provider == 'aws'
