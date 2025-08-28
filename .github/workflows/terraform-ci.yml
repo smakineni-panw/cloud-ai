@@ -26,8 +26,8 @@ jobs:
           github.event.inputs.provider == 'aws' && 'AWS' ||
           github.event.inputs.provider == 'azure' && 'Azure' ||
           github.event.inputs.provider == 'gcp' && 'GCP' ||
-          'default' # Fallback in case of unexpected input
-        }}
+          'default' 
+        }} # Fallback in case of unexpected input - Comment moved here
     # -----------------------------------------------------------------
     
     # --- IMPORTANT: ADD THESE PERMISSIONS ---
