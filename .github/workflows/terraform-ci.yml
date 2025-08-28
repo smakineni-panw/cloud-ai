@@ -18,23 +18,16 @@ jobs:
     name: 'Terraform'
     runs-on: ubuntu-latest
     
-    # --- IMPORTANT: ADDED/UPDATED ENVIRONMENT BLOCK FOR CASE SENSITIVITY ---
-    # Dynamically set environment based on selected provider, matching the exact case of GitHub Environments
-    environment: 
-      name: >-
-        ${{ 
-          github.event.inputs.provider == 'aws' && 'AWS' ||
-          github.event.inputs.provider == 'azure' && 'Azure' ||
-          github.event.inputs.provider == 'gcp' && 'GCP' ||
-          'default' 
-        }} # Fallback in case of unexpected input
-    # ---------------------------------------------------------------------
+    # --- IMPORTANT: REMOVED THE ENVIRONMENT BLOCK ---
+    # We are now using Repository Secrets, so no need to specify an environment.
+    # ------------------------------------------------
     
-    # --- IMPORTANT: ADDED THESE PERMISSIONS ---
+    # --- IMPORTANT: KEEP THESE PERMISSIONS ---
+    # id-token: write is still good practice for OIDC (AWS, GCP) even with static keys,
+    # and contents: read is always needed for checking out code.
     permissions:
-      id-token: write # Crucial for OIDC-based authentication (AWS, GCP)
-      contents: read  # Required for checkout action
-      # If you were using "deployment_status" or other specific permissions, add them here.
+      id-token: write 
+      contents: read  
     # ----------------------------------------
     
     env:
@@ -46,7 +39,8 @@ jobs:
       TF_VAR_storage_account_name: mymulticloudsa${{ github.run_id }} # Unique name
       TF_VAR_storage_container_name: mycontainer-${{ github.run_number }}
       
-      TF_VAR_gcp_project_id: ${{ secrets.GCP_PROJECT_ID }} # This will now be pulled from the selected environment
+      # GCP_PROJECT_ID will now be pulled directly from Repository Secrets
+      TF_VAR_gcp_project_id: ${{ secrets.GCP_PROJECT_ID }} 
       TF_VAR_gcs_bucket_name: my-unique-gcs-bucket-${{ github.run_id }}-${{ github.run_number }} # Unique name
       TF_VAR_gcs_location: US-EAST1
 
@@ -59,7 +53,7 @@ jobs:
         with:
           terraform_version: 1.x # Use the latest stable 1.x version
 
-      # --- NEW DEBUGGING STEP ---
+      # --- DEBUGGING STEP (KEEP FOR NOW) ---
       - name: Debug AWS Secret Presence
         if: github.event.inputs.provider == 'aws'
         run: |
@@ -67,7 +61,7 @@ jobs:
           echo "AWS_ACCESS_KEY_ID present: ${{ secrets.AWS_ACCESS_KEY_ID != '' }}"
           echo "AWS_SECRET_ACCESS_KEY present: ${{ secrets.AWS_SECRET_ACCESS_KEY != '' }}"
         # IMPORTANT: DO NOT echo the actual secret values, only check for presence
-      # ------------------------
+      # -------------------------------------
 
       - name: Configure AWS Credentials
         # This step only runs if 'aws' is selected as the provider
@@ -94,7 +88,7 @@ jobs:
         id: 'auth'
         uses: 'google-github-actions/auth@v2'
         with:
-          # Use the JSON content of the service account key from GitHub Secrets
+          # Use the JSON content of the service account key from Repository Secrets
           credentials_json: ${{ secrets.GCP_SA_KEY }}
           
       - name: Terraform Init and Plan
