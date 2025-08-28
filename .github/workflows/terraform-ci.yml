@@ -1,1 +1,89 @@
+name: 'Terraform Multi-Cloud CI/CD'
+
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: 'Cloud Provider to run on (aws, azure, gcp)'
+        required: true
+        default: 'aws'
+        type: choice
+        options:
+        - aws
+        - azure
+        - gcp
+
+jobs:
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-latest
+    
+    # Define environment variables for Terraform, including dynamic bucket names
+    env:
+      TF_VAR_aws_region: us-east-1
+      TF_VAR_s3_bucket_name: my-unique-s3-bucket-${{ github.run_id }}-${{ github.run_number }} # Unique name
+      
+      TF_VAR_azure_location: East US
+      TF_VAR_resource_group_name: my-multi-cloud-rg
+      TF_VAR_storage_account_name: mymulticloudsa${{ github.run_id }} # Unique name
+      TF_VAR_storage_container_name: mycontainer-${{ github.run_number }}
+      
+      TF_VAR_gcp_project_id: ${{ secrets.GCP_PROJECT_ID }}
+      TF_VAR_gcs_bucket_name: my-unique-gcs-bucket-${{ github.run_id }}-${{ github.run_number }} # Unique name
+      TF_VAR_gcs_location: US-EAST1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4 # Action to check out your repository code
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3 # Action to install Terraform CLI
+        with:
+          terraform_version: 1.x # Use the latest stable 1.x version
+
+      - name: Configure AWS Credentials
+        # This step only runs if 'aws' is selected as the provider
+        if: github.event.inputs.provider == 'aws'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.TF_VAR_aws_region }} # Use the region defined in env
+        
+      - name: Authenticate Azure
+        # This step only runs if 'azure' is selected as the provider
+        if: github.event.inputs.provider == 'azure'
+        run: |
+          # Install Azure CLI if not already present (ubuntu-latest usually has it)
+          sudo apt-get update && sudo apt-get install -y azure-cli
+          # Log in using the Service Principal credentials from GitHub Secrets
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          echo "Azure authentication successful."
+        
+      - name: Authenticate GCP
+        # This step only runs if 'gcp' is selected as the provider
+        if: github.event.inputs.provider == 'gcp'
+        id: 'auth'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          # Use the JSON content of the service account key from GitHub Secrets
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          
+      - name: Terraform Init and Plan
+        id: plan
+        run: |
+          # Change directory to the selected provider's folder and run init
+          terraform -chdir="./providers/${{ github.event.inputs.provider }}" init
+          # Validate the Terraform configuration
+          terraform -chdir="./providers/${{ github.event.inputs.provider }}" validate
+          # Generate a Terraform plan and save it to 'tfplan' file
+          terraform -chdir="./providers/${{ github.event.inputs.provider }}" plan -out=tfplan
+          echo "Terraform plan generated successfully."
+          
+      - name: Terraform Apply
+        # This step applies the plan if the previous steps were successful
+        run: |
+          # Change directory and apply the saved plan
+          terraform -chdir="./providers/${{ github.event.inputs.provider }}" apply -auto-approve tfplan
+          echo "Terraform apply completed."
 
