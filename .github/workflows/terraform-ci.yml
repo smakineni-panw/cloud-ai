@@ -37,13 +37,16 @@ jobs:
       
       TF_VAR_azure_location: East US
       TF_VAR_resource_group_name: my-multi-cloud-rg
-      TF_VAR_storage_account_name: mymulticloudsa${{ github.run_id }}
+      # --- IMPORTANT: UPDATED STORAGE ACCOUNT NAME TO USE run_number FOR SHORTER LENGTH ---
+      TF_VAR_storage_account_name: mymulticloudsa${{ github.run_number }} # Ensures name is under 24 characters
+      # ----------------------------------------------------------------------------------
       TF_VAR_storage_container_name: mycontainer-${{ github.run_number }}
       
       TF_VAR_gcp_project_id: ${{ secrets.GCP_PROJECT_ID }}
-      TF_VAR_gcs_bucket_name: my-unique-gcs-bucket-${{ github.run_id }}-${{ github.run_number }}
+      # --- IMPORTANT: UPDATED GCS BUCKET NAME TO USE run_number FOR CONSISTENCY/POTENTIAL LENGTH ISSUES ---
+      TF_VAR_gcs_bucket_name: my-unique-gcs-bucket-${{ github.run_number }} # Simplified for potential length
+      # --------------------------------------------------------------------------------------------------
       TF_VAR_gcs_location: US-EAST1
-      # Also add TF_VAR_gcp_region here for consistency if not already present
       TF_VAR_gcp_region: us-central1 
 
 
@@ -94,7 +97,6 @@ jobs:
       - name: Terraform Init and Plan
         id: plan
         run: |
-          # Removed 'export TF_LOG=DEBUG'
           terraform -chdir="./providers/${{ github.event.inputs.provider }}" init
           terraform -chdir="./providers/${{ github.event.inputs.provider }}" validate
           terraform -chdir="./providers/${{ github.event.inputs.provider }}" plan -out=tfplan
