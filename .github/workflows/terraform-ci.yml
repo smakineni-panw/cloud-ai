@@ -72,6 +72,7 @@ jobs:
       - name: Terraform Init and Plan
         id: plan
         run: |
+          export TF_LOG=DEBUG # Add this line
           # Change directory to the selected provider's folder and run init
           terraform -chdir="./providers/${{ github.event.inputs.provider }}" init
           # Validate the Terraform configuration
