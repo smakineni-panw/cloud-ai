@@ -79,8 +79,23 @@ jobs:
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }} # Pass the client secret directly
-          # subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }} # Optional, if you want to explicitly target a subscription
+          # The azure/login action expects the client secret in the `creds` input for service principal or via environment variables
+          # It does NOT accept 'client-secret' as a direct parameter.
+          # You should ensure ARM_CLIENT_SECRET is set as an environment variable or use the 'creds' input format.
+          # For simplicity with direct client_id/tenant_id, we'll try setting environment variables for az cli
+          # If using service principal, it's often better to combine into a JSON for 'creds' input.
+          # However, to match the separate secrets, we'll revert to using environment variables for the action.
+          # The azure/login action specifically for service principal uses:
+          # service-principal: true, client-id, tenant-id, client-secret, subscription-id
+          # Let's use the explicit 'creds' input for service principal for reliability.
+          creds: >-
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+            }
+          # subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }} # This is now part of the 'creds' JSON
       # ---------------------------------------------
         
       - name: Authenticate GCP
